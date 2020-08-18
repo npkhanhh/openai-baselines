@@ -161,7 +161,7 @@ def learn(env,
     if not isinstance(env, VecEnv):
         obs = np.expand_dims(np.array(obs), axis=0)
     reset = True
-
+    max_pos = -99
     for t in range(total_timesteps):
         if callback is not None:
             if callback(locals(), globals()):
@@ -184,6 +184,13 @@ def learn(env,
         action = action[0].numpy()
         reset = False
         new_obs, rew, done, _ = env.step(action)
+        rew = np.array([new_obs[-1][0] + 0.5])
+        if new_obs[-1][0] >= 0.5:
+            print("hit")
+            rew[-1] += 10
+        if new_obs[-1][0] > max_pos:
+            max_pos = new_obs[-1][0]
+            print(max_pos)
         # Store transition in the replay buffer.
         if not isinstance(env, VecEnv):
             new_obs = np.expand_dims(np.array(new_obs), axis=0)
@@ -196,6 +203,8 @@ def learn(env,
 
         episode_rewards[-1] += rew
         if done:
+            with open('final_pos2.txt', 'a') as file:
+                file.write(str(obs[-1][0]) + '\n')
             obs = env.reset()
             if not isinstance(env, VecEnv):
                 obs = np.expand_dims(np.array(obs), axis=0)

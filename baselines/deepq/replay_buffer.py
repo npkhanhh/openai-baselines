@@ -1,5 +1,6 @@
 import numpy as np
 import random
+import csv
 
 from baselines.common.segment_tree import SumSegmentTree, MinSegmentTree
 
@@ -17,6 +18,7 @@ class ReplayBuffer(object):
         self._storage = []
         self._maxsize = size
         self._next_idx = 0
+        self.memory_count = 0
 
     def __len__(self):
         return len(self._storage)
@@ -29,6 +31,13 @@ class ReplayBuffer(object):
         else:
             self._storage[self._next_idx] = data
         self._next_idx = (self._next_idx + 1) % self._maxsize
+        if self._next_idx == 0 and len(self._storage) > 0:
+            with open('no_per_memory/memory' + str(self.memory_count) + '.csv', 'w') as f:
+                writer = csv.writer(f)
+                writer.writerows(self._storage)
+            self.memory_count += 1
+
+
 
     def _encode_sample(self, idxes):
         obses_t, actions, rewards, obses_tp1, dones = [], [], [], [], []
