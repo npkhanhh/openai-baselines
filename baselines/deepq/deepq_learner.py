@@ -182,6 +182,26 @@ class DEEPQ(tf.Module):
 
       return td_error
 
+
+    @tf.function()
+    def calculate_td_error(self, obs0, actions, rewards, obs1, dones):
+        with tf.GradientTape() as tape:
+            q_t = self.q_network(obs0)
+            q_t_selected = tf.reduce_sum(q_t * tf.one_hot(actions, self.num_actions, dtype=tf.float32), 1)
+
+            q_tp1 = self.target_q_network(obs1)
+
+            q_tp1_best = tf.reduce_max(q_tp1, 1)
+
+            dones = tf.cast(dones, q_tp1_best.dtype)
+            q_tp1_best_masked = (1.0 - dones) * q_tp1_best
+
+            q_t_selected_target = tf.cast(rewards, q_tp1_best_masked.dtype) + self.gamma * q_tp1_best_masked
+
+            td_error = q_t_selected - tf.stop_gradient(q_t_selected_target)
+        return td_error
+
+
     @tf.function(autograph=False)
     def update_target(self):
       q_vars = self.q_network.trainable_variables

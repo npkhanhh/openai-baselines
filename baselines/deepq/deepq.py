@@ -14,7 +14,6 @@ from baselines.deepq.replay_buffer import ReplayBuffer, PrioritizedReplayBuffer
 from baselines.deepq.models import build_q_func
 
 
-
 def learn(env,
           network,
           seed=None,
@@ -40,7 +39,7 @@ def learn(env,
           callback=None,
           load_path=None,
           **network_kwargs
-            ):
+          ):
     """Train a deepq model.
 
     Parameters
@@ -145,7 +144,7 @@ def learn(env,
                                        initial_p=prioritized_replay_beta0,
                                        final_p=1.0)
     else:
-        replay_buffer = ReplayBuffer(buffer_size)
+        replay_buffer = ReplayBuffer(buffer_size, env.spec.id)
         beta_schedule = None
     # Create the schedule for exploration starting from 1.
     exploration = LinearSchedule(schedule_timesteps=int(exploration_fraction * total_timesteps),
@@ -184,27 +183,20 @@ def learn(env,
         action = action[0].numpy()
         reset = False
         new_obs, rew, done, _ = env.step(action)
-        rew = np.array([new_obs[-1][0] + 0.5])
-        if new_obs[-1][0] >= 0.5:
-            print("hit")
-            rew[-1] += 10
-        if new_obs[-1][0] > max_pos:
-            max_pos = new_obs[-1][0]
-            print(max_pos)
         # Store transition in the replay buffer.
         if not isinstance(env, VecEnv):
             new_obs = np.expand_dims(np.array(new_obs), axis=0)
-            replay_buffer.add(obs[0], action, rew, new_obs[0], float(done))
+            td_errors = model.calculate_td_error(tf.constant(obs), action, rew, tf.constant(new_obs), done)
+            replay_buffer.add(obs[0], action, rew, new_obs[0], float(done), np.abs(td_errors[0]))
         else:
-            replay_buffer.add(obs[0], action, rew[0], new_obs[0], float(done[0]))
+            td_errors = model.calculate_td_error(tf.constant(obs), action, rew[0], tf.constant(new_obs), done)
+            replay_buffer.add(obs[0], action, rew[0], new_obs[0], float(done[0]), np.abs(td_errors[0]))
         # # Store transition in the replay buffer.
         # replay_buffer.add(obs, action, rew, new_obs, float(done))
         obs = new_obs
 
         episode_rewards[-1] += rew
         if done:
-            with open('final_pos2.txt', 'a') as file:
-                file.write(str(obs[-1][0]) + '\n')
             obs = env.reset()
             if not isinstance(env, VecEnv):
                 obs = np.expand_dims(np.array(obs), axis=0)
@@ -217,12 +209,13 @@ def learn(env,
                 experience = replay_buffer.sample(batch_size, beta=beta_schedule.value(t))
                 (obses_t, actions, rewards, obses_tp1, dones, weights, batch_idxes) = experience
             else:
-                obses_t, actions, rewards, obses_tp1, dones = replay_buffer.sample(batch_size)
-                weights, batch_idxes = np.ones_like(rewards), None
+                obses_t, actions, rewards, obses_tp1, dones, batch_idxes = replay_buffer.sample(batch_size)
+                weights = np.ones_like(rewards)
             obses_t, obses_tp1 = tf.constant(obses_t), tf.constant(obses_tp1)
             actions, rewards, dones = tf.constant(actions), tf.constant(rewards), tf.constant(dones)
             weights = tf.constant(weights)
             td_errors = model.train(obses_t, actions, rewards, obses_tp1, dones, weights)
+            replay_buffer.update(batch_idxes, np.abs(td_errors))
             if prioritized_replay:
                 new_priorities = np.abs(td_errors) + prioritized_replay_eps
                 replay_buffer.update_priorities(batch_idxes, new_priorities)
