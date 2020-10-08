@@ -19,11 +19,14 @@ class ReplayBuffer(object):
         self._maxsize = size
         self._next_idx = 0
         self.memory_count = 0
+        self._td_errors = []
+        self._replace_td_errors = []
+        self.t = 0
 
     def __len__(self):
         return len(self._storage)
 
-    def add(self, obs_t, action, reward, obs_tp1, done):
+    def add(self, obs_t, action, reward, obs_tp1, done, td_error):
         data = (obs_t, action, reward, obs_tp1, done)
 
         if self._next_idx >= len(self._storage):
@@ -31,12 +34,20 @@ class ReplayBuffer(object):
         else:
             self._storage[self._next_idx] = data
         self._next_idx = (self._next_idx + 1) % self._maxsize
-        if self._next_idx == 0 and len(self._storage) > 0:
-            with open('no_per_memory/memory' + str(self.memory_count) + '.csv', 'w') as f:
-                writer = csv.writer(f)
-                writer.writerows(self._storage)
-            self.memory_count += 1
+        self._td_errors.append(str(td_error))
+        if len(self._td_errors) == 10000:
+            with open('new_td.txt', 'a') as file:
+                file.write(' '.join(self._td_errors) + '\n')
+            self._td_errors = []
 
+    def update(self, td_errors):
+        self.t += 1
+        self._replace_td_errors = np.concatenate([self._replace_td_errors, td_errors])
+        if self.t % 10 == 0:
+            self.t = 0
+            with open('replace_td.txt', 'a') as file:
+                file.write(' '.join(map(str, self._replace_td_errors)) + '\n')
+            self._replace_td_errors = []
 
 
     def _encode_sample(self, idxes):
