@@ -4,19 +4,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-import gzip
-import pandas as pd
-
-import numpy as np
-
-
-
 def running_mean(x, N):
     cumsum = np.cumsum(np.insert(x, 0, 0))
     return (cumsum[N:] - cumsum[:-N]) / float(N)
 
 
-results = pu.load_results('logs/BreakoutNoFrameskip-v0-25e6-gamma99')
+results = pu.load_results('BreakoutNoFrameskip-v0-25e6-gamma99-npkhanhthesis')
 
 # fig, axs = plt.subplots(1, 3, figsize=(25, 12), dpi=100, constrained_layout=True)
 
