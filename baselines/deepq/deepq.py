@@ -186,9 +186,11 @@ def learn(env,
         # Store transition in the replay buffer.
         if not isinstance(env, VecEnv):
             new_obs = np.expand_dims(np.array(new_obs), axis=0)
-            replay_buffer.add(obs[0], action, rew, new_obs[0], float(done))
+            td_errors = model.calculate_td_error(tf.constant(obs), action, rew, tf.constant(new_obs), done)
+            replay_buffer.add(obs[0], action, rew, new_obs[0], float(done), np.abs(td_errors[0]))
         else:
-            replay_buffer.add(obs[0], action, rew[0], new_obs[0], float(done[0]))
+            td_errors = model.calculate_td_error(tf.constant(obs), action, rew[0], tf.constant(new_obs), done)
+            replay_buffer.add(obs[0], action, rew[0], new_obs[0], float(done[0]), np.abs(td_errors[0]))
         # # Store transition in the replay buffer.
         # replay_buffer.add(obs, action, rew, new_obs, float(done))
         obs = new_obs
