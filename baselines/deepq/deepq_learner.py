@@ -182,7 +182,6 @@ class DEEPQ(tf.Module):
 
       return td_error
 
-
     @tf.function()
     def calculate_td_error(self, obs0, actions, rewards, obs1, dones):
         with tf.GradientTape() as tape:
@@ -200,7 +199,6 @@ class DEEPQ(tf.Module):
 
             td_error = q_t_selected - tf.stop_gradient(q_t_selected_target)
         return td_error
-
 
     @tf.function(autograph=False)
     def update_target(self):

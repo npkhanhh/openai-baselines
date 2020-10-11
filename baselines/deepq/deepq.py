@@ -137,14 +137,14 @@ def learn(env,
 
     # Create the replay buffer
     if prioritized_replay:
-        replay_buffer = PrioritizedReplayBuffer(buffer_size, alpha=prioritized_replay_alpha)
+        replay_buffer = PrioritizedReplayBuffer(buffer_size, alpha=prioritized_replay_alpha, env_name=env.spec.id)
         if prioritized_replay_beta_iters is None:
             prioritized_replay_beta_iters = total_timesteps
         beta_schedule = LinearSchedule(prioritized_replay_beta_iters,
                                        initial_p=prioritized_replay_beta0,
                                        final_p=1.0)
     else:
-        replay_buffer = ReplayBuffer(buffer_size, env.spec.id)
+        replay_buffer = ReplayBuffer(buffer_size, env_name=env.spec.id)
         beta_schedule = None
     # Create the schedule for exploration starting from 1.
     exploration = LinearSchedule(schedule_timesteps=int(exploration_fraction * total_timesteps),
@@ -160,7 +160,6 @@ def learn(env,
     if not isinstance(env, VecEnv):
         obs = np.expand_dims(np.array(obs), axis=0)
     reset = True
-    max_pos = -99
     for t in range(total_timesteps):
         if callback is not None:
             if callback(locals(), globals()):
