@@ -79,10 +79,10 @@ class ReplayBuffer(object):
             self.swap(self._get_insert_pos(td_error), self._get_delete_pos(td_error), data[1], td_error)
         self._calculate_expected_total()
         self._next_idx = (self._next_idx + 1) % self._maxsize
-        self._td_errors.append(str(td_error))
+        self._td_errors.append(td_error)
         if len(self._td_errors) == 10000:
             with open('new_td_{}_closest.txt'.format(self._env_name), 'a') as file:
-                file.write(' '.join(self._td_errors) + '\n')
+                file.write(' '.join(map(str, self._td_errors))+ '\n')
             self._td_errors = []
 
     def update(self, batch_idxs, td_error):
