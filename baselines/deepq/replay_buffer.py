@@ -6,7 +6,7 @@ from baselines.common.segment_tree import SumSegmentTree, MinSegmentTree
 
 
 class ReplayBuffer(object):
-    def __init__(self, size):
+    def __init__(self, size, env_name):
         """Create Replay buffer.
 
         Parameters
@@ -21,6 +21,7 @@ class ReplayBuffer(object):
         self.memory_count = 0
         self._td_errors = []
         self._replace_td_errors = []
+        self._env_name = env_name
         self.t = 0
 
     def __len__(self):
@@ -36,7 +37,7 @@ class ReplayBuffer(object):
         self._next_idx = (self._next_idx + 1) % self._maxsize
         self._td_errors.append(str(td_error))
         if len(self._td_errors) == 10000:
-            with open('new_td.txt', 'a') as file:
+            with open('new_td_{}_per.txt'.format(self._env_name), 'a') as file:
                 file.write(' '.join(self._td_errors) + '\n')
             self._td_errors = []
 
@@ -45,7 +46,7 @@ class ReplayBuffer(object):
         self._replace_td_errors = np.concatenate([self._replace_td_errors, td_errors])
         if self.t % 10 == 0:
             self.t = 0
-            with open('replace_td.txt', 'a') as file:
+            with open('replace_td_{}_per.txt'.format(self._env_name), 'a') as file:
                 file.write(' '.join(map(str, self._replace_td_errors)) + '\n')
             self._replace_td_errors = []
 
@@ -92,7 +93,7 @@ class ReplayBuffer(object):
 
 
 class PrioritizedReplayBuffer(ReplayBuffer):
-    def __init__(self, size, alpha):
+    def __init__(self, size, alpha, env_name):
         """Create Prioritized Replay buffer.
 
         Parameters
@@ -108,7 +109,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         --------
         ReplayBuffer.__init__
         """
-        super(PrioritizedReplayBuffer, self).__init__(size)
+        super(PrioritizedReplayBuffer, self).__init__(size, env_name)
         assert alpha >= 0
         self._alpha = alpha
 
