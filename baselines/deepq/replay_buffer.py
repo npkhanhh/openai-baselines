@@ -20,6 +20,8 @@ class ReplayBuffer(object):
         self._maxsize = size
         self._next_idx = 0
         self._td_errors = []
+        self._replace_td_errors = []
+        self._new_td = []
         self._expected_total = 0
         self._current_total = 0
         self.t = 0
@@ -79,11 +81,11 @@ class ReplayBuffer(object):
             self.swap(self._get_insert_pos(td_error), self._get_delete_pos(td_error), data[1], td_error)
         self._calculate_expected_total()
         self._next_idx = (self._next_idx + 1) % self._maxsize
-        self._td_errors.append(td_error)
-        if len(self._td_errors) == 10000:
+        self._new_td.append(str(td_error))
+        if len(self._new_td) == 10000:
             with open('new_td_{}_closest.txt'.format(self._env_name), 'a') as file:
-                file.write(' '.join(map(str, self._td_errors))+ '\n')
-            self._td_errors = []
+                file.write(' '.join(map(str, self._new_td)) + '\n')
+            self._new_td = []
 
     def update(self, batch_idxs, td_error):
         for idx, error in zip(batch_idxs, td_error):
@@ -112,7 +114,8 @@ class ReplayBuffer(object):
             obses_tp1.append(np.array(obs_tp1, copy=False))
             dones.append(done)
         return np.array(obses_t, dtype=ob_dtype), np.array(actions, dtype=ac_dtype), \
-               np.array(rewards, dtype=np.float32), np.array(obses_tp1, dtype=ob_dtype), np.array(dones, dtype=np.float32)
+               np.array(rewards, dtype=np.float32), np.array(obses_tp1, dtype=ob_dtype), np.array(dones,
+                                                                                                  dtype=np.float32)
 
     def sample(self, batch_size):
         """Sample a batch of experiences.
