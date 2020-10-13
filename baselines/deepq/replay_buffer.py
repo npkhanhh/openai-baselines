@@ -32,24 +32,18 @@ class ReplayBuffer(object):
 
         if self._next_idx >= len(self._storage):
             self._storage.append(data)
+            self._td_errors.append(np.abs(td_error))
         else:
             self._storage[self._next_idx] = data
+            self._td_errors[self._next_idx] = np.abs(td_error)
         self._next_idx = (self._next_idx + 1) % self._maxsize
-        self._td_errors.append(str(td_error))
-        if len(self._td_errors) == 10000:
-            with open('new_td_{}_per.txt'.format(self._env_name), 'a') as file:
-                file.write(' '.join(self._td_errors) + '\n')
-            self._td_errors = []
+        if self._next_idx == 0:
+            with open('td_error_{}.txt'.format(self._env_name), 'a') as file:
+                file.write(' '.join(map(str, self._td_errors)) + '\n')
 
-    def update(self, td_errors):
-        self.t += 1
-        self._replace_td_errors = np.concatenate([self._replace_td_errors, td_errors])
-        if self.t % 10 == 0:
-            self.t = 0
-            with open('replace_td_{}_per.txt'.format(self._env_name), 'a') as file:
-                file.write(' '.join(map(str, self._replace_td_errors)) + '\n')
-            self._replace_td_errors = []
-
+    def update(self, td_errors, idxes):
+        for (td_error, idx) in zip(td_errors, idxes):
+            self._td_errors[idx] = np.abs(td_error)
 
     def _encode_sample(self, idxes):
         obses_t, actions, rewards, obses_tp1, dones = [], [], [], [], []
@@ -89,7 +83,7 @@ class ReplayBuffer(object):
             the end of an episode and 0 otherwise.
         """
         idxes = [random.randint(0, len(self._storage) - 1) for _ in range(batch_size)]
-        return self._encode_sample(idxes)
+        return tuple(list(self._encode_sample(idxes)) + [idxes])
 
 
 class PrioritizedReplayBuffer(ReplayBuffer):

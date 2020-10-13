@@ -209,13 +209,13 @@ def learn(env,
                 experience = replay_buffer.sample(batch_size, beta=beta_schedule.value(t))
                 (obses_t, actions, rewards, obses_tp1, dones, weights, batch_idxes) = experience
             else:
-                obses_t, actions, rewards, obses_tp1, dones = replay_buffer.sample(batch_size)
-                weights, batch_idxes = np.ones_like(rewards), None
+                (obses_t, actions, rewards, obses_tp1, dones, batch_idxes) = replay_buffer.sample(batch_size)
+                weights = np.ones_like(rewards)
             obses_t, obses_tp1 = tf.constant(obses_t), tf.constant(obses_tp1)
             actions, rewards, dones = tf.constant(actions), tf.constant(rewards), tf.constant(dones)
             weights = tf.constant(weights)
             td_errors = model.train(obses_t, actions, rewards, obses_tp1, dones, weights)
-            replay_buffer.update(td_errors)
+            replay_buffer.update(td_errors, batch_idxes)
             if prioritized_replay:
                 new_priorities = np.abs(td_errors) + prioritized_replay_eps
                 replay_buffer.update_priorities(batch_idxes, new_priorities)
