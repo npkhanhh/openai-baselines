@@ -81,24 +81,15 @@ class ReplayBuffer(object):
             self.swap(self._get_insert_pos(td_error), self._get_delete_pos(td_error), data[1], td_error)
         self._calculate_expected_total()
         self._next_idx = (self._next_idx + 1) % self._maxsize
-        self._new_td.append(str(td_error))
-        if len(self._new_td) == 10000:
-            with open('new_td_{}_closest.txt'.format(self._env_name), 'a') as file:
-                file.write(' '.join(map(str, self._new_td)) + '\n')
-            self._new_td = []
+        if self._next_idx == 0:
+            with open('td_error_{}_uniform.txt'.format(self._env_name), 'a') as file:
+                file.write(' '.join(map(str, self._td_errors)) + '\n')
 
     def update(self, batch_idxs, td_error):
         for idx, error in zip(batch_idxs, td_error):
             old_error, data = self._storage[idx]
             self.swap(self._get_insert_pos(error), idx, data, error)
         self._calculate_expected_total()
-        self.t += 1
-        self._replace_td_errors = np.concatenate([self._replace_td_errors, td_error])
-        if self.t % 10 == 0:
-            self.t = 0
-            with open('replace_td_{}_closest.txt'.format(self._env_name), 'a') as file:
-                file.write(' '.join(map(str, self._replace_td_errors)) + '\n')
-            self._replace_td_errors = []
 
     def _encode_sample(self, idxes):
         obses_t, actions, rewards, obses_tp1, dones = [], [], [], [], []
