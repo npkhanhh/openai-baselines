@@ -2,6 +2,7 @@ from baselines.common import plot_util as pu
 
 import matplotlib.pyplot as plt
 import numpy as np
+import subprocess
 
 
 def running_mean(x, N):
@@ -9,18 +10,17 @@ def running_mean(x, N):
     return (cumsum[N:] - cumsum[:-N]) / float(N)
 
 
-results_per = pu.load_results('/Users/khanh/logs/cartpole-v1-20201014-per')
-results_noper = pu.load_results('/Users/khanh/logs/cartpole-v1-20201014-noper')
-results_closest = pu.load_results('/Users/khanh/logs/cartpole-v1-20201014-replace')
-plt.xlabel('episodes')
-plt.ylabel('rewards')
-r = results_noper[0]
-plt.plot(running_mean(r.monitor.r.values, 100), label='dqn')
+line_noper = subprocess.check_output(
+    ['tail', '-1', '/Users/khanh/utas/thesis/openai-baseline/baselines/baselines/td_error_CartPole-v1_noper.txt']).rstrip()
+line_uniform = subprocess.check_output(
+    ['tail', '-1', '/Users/khanh/utas/thesis/openai-baseline/baselines/baselines/td_error_CartPole-v1_uniform.txt']).rstrip()
 
-r_per = results_per[0]
-plt.plot(running_mean(r_per.monitor.r.values, 100), label='per')
+a_noper = sorted(map(float, line_noper.split()))
+print(a_noper)
+a_uniform = list(map(float, line_uniform.split()))
+# plt.hist(a_uniform_noper)
+print(min(a_noper), max(a_noper))
+plt.hist(a_noper, bins=np.arange(min(a_noper[:-1]), max(a_noper[:-1]) + 0.01, 0.01))
+# plt.hist(a_uniform, bins=np.arange(min(a_uniform[:-1]), max(a_uniform[:-1]) + 0.01, 0.01))
 
-r_uniform = results_closest[0]
-plt.plot(running_mean(r_uniform.monitor.r.values, 100), label='uniform')
-plt.legend()
-plt.savefig('cartpole-result.png', bbox_inches='tight')
+plt.show()

@@ -1,2 +1,3 @@
-python run.py --alg=deepq --env=CartPole-v1 --num_timesteps=1e6 --save_path=~/models/cartpole-v1-20201014-replace --log_path=~/logs/cartpole-v1-20201014-replace --gamma=0.99 --dueling=False --prioritized_replay=False
-python run.py --alg=deepq --env=Acrobot-v1 --num_timesteps=1e6 --save_path=~/models/acrobot-v1-20201014-replace --log_path=~/logs/acrobot-v1-20201014-replace --gamma=0.99 --dueling=False --prioritized_replay=False
+python run.py --alg=deepq --env=MountainCar-v0 --num_timesteps=1e6 --save_path=~/models/mountaincar-v0-20201015-noper --log_path=~/logs/mountaincar-v0-20201015-noper --gamma=0.99 --dueling=False --prioritized_replay=False
+python run.py --alg=deepq --env=MountainCar-v0 --num_timesteps=1e6 --save_path=~/models/mountaincar-v0-20201015-per --log_path=~/logs/mountaincar-v0-20201015-per --gamma=0.99 --dueling=False --prioritized_replay=True
+python run.py --alg=deepq --env=MountainCar-v0 --num_timesteps=1e6 --save_path=~/models/mountaincar-v0-20201015-pddper --log_path=~/logs/mountaincar-v0-20201015-pddper --gamma=0.99 --dueling=True --prioritized_replay=True
