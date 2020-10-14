@@ -157,6 +157,7 @@ def learn(env,
     episode_rewards = [0.0]
     saved_mean_reward = None
     obs = env.reset()
+    max_pos = -99
     # always mimic the vectorized env
     if not isinstance(env, VecEnv):
         obs = np.expand_dims(np.array(obs), axis=0)
@@ -183,6 +184,12 @@ def learn(env,
         action = action[0].numpy()
         reset = False
         new_obs, rew, done, _ = env.step(action)
+        rew[0] = new_obs[0][0] + 1
+        if new_obs[0][0] > max_pos:
+            print(new_obs[0][0])
+            max_pos = new_obs[0][0]
+        if new_obs[0][0] >= 0.5:
+            rew[0] += 5
         # Store transition in the replay buffer.
         if not isinstance(env, VecEnv):
             new_obs = np.expand_dims(np.array(new_obs), axis=0)
@@ -195,7 +202,7 @@ def learn(env,
         # replay_buffer.add(obs, action, rew, new_obs, float(done))
         obs = new_obs
 
-        episode_rewards[-1] += rew
+        episode_rewards[-1] -= 1
         if done:
             obs = env.reset()
             if not isinstance(env, VecEnv):
