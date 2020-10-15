@@ -37,7 +37,7 @@ class ReplayBuffer(object):
         self._expected_total = (self._min_td_error + self._max_td_error)
 
     def _calculate_expected_total(self):
-        self._expected_total = (self._td_errors[0] + self._td_errors[-1]) / 2
+        self._expected_total = (self._td_errors[0] + self._td_errors[-1]) * (self._maxsize / 2)
 
     def _get_insert_pos(self, td_error):
         pos = bisect.bisect_left(self._td_errors, td_error)
@@ -82,7 +82,7 @@ class ReplayBuffer(object):
         self._calculate_expected_total()
         self._next_idx = (self._next_idx + 1) % self._maxsize
         if self._next_idx == 0:
-            with open('td_error_{}_uniform.txt'.format(self._env_name), 'a') as file:
+            with open('td_error_{}_uniform2.txt'.format(self._env_name), 'a') as file:
                 file.write(' '.join(map(str, self._td_errors)) + '\n')
 
     def update(self, batch_idxs, td_error):
