@@ -1,3 +1,5 @@
+import time
+
 import numpy as np
 import random
 import bisect
@@ -26,6 +28,7 @@ class ReplayBuffer(object):
         self._current_total = 0
         self.t = 0
         self._env_name = env_name
+        self._buffer_file = 'td_error_{}_uniform2_{}.txt'.format(env_name, time.time())
 
     def _update_min_max(self, td_error):
         if self._min_td_error <= td_error <= self._max_td_error:
@@ -82,7 +85,7 @@ class ReplayBuffer(object):
         self._calculate_expected_total()
         self._next_idx = (self._next_idx + 1) % self._maxsize
         if self._next_idx == 0:
-            with open('td_error_{}_uniform2.txt'.format(self._env_name), 'a') as file:
+            with open(self._buffer_file, 'a') as file:
                 file.write(' '.join(map(str, self._td_errors)) + '\n')
 
     def update(self, batch_idxs, td_error):
