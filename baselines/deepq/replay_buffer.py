@@ -1,3 +1,5 @@
+import time
+
 import numpy as np
 import random
 import csv
@@ -24,6 +26,13 @@ class ReplayBuffer(object):
         self._env_name = env_name
         self._dueling = dueling
         self._per = per
+        if self._dueling:
+            suffix = '_pddper'
+        elif self._per:
+            suffix = '_per'
+        else:
+            suffix = '_noper'
+        self._buffer_file = 'td_error_{}_{}_{}.txt'.format(self._env_name, suffix, time.time())
 
     def __len__(self):
         return len(self._storage)
@@ -39,14 +48,7 @@ class ReplayBuffer(object):
             self._td_errors[self._next_idx] = np.abs(td_error)
         self._next_idx = (self._next_idx + 1) % self._maxsize
         if self._next_idx == 0:
-            s = self._env_name
-            if self._dueling:
-                s += '_pddper'
-            if self._per:
-                s += '_per'
-            else:
-                s += '_noper'
-            with open('td_error_{}.txt'.format(s), 'a') as file:
+            with open(self._buffer_file, 'a') as file:
                 file.write(' '.join(map(str, self._td_errors)) + '\n')
 
     def update(self, td_errors, idxes):
