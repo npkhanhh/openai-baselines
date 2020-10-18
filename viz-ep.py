@@ -9,15 +9,14 @@ def running_mean(x, N):
     return (cumsum[N:] - cumsum[:-N]) / float(N)
 
 
-results = pu.load_results('')
+results = pu.load_results('/Users/khanh/logs/mountaincar-v0-20200818-1-no-per')
 results_1e5 = pu.load_results('baseline-log/logs/mountaincar-v0-1e5')
 results_noper = pu.load_results('baseline-log/logs/mountaincar-v0-noper')
 
 # fig, axs = plt.subplots(1, 3, figsize=(25, 12), dpi=100, constrained_layout=True)
 
 r = results[0]
-print(len(r.monitor.r))
-plt.plot(r.monitor.r[:1000])
+plt.plot(np.cumsum(r.monitor.l), r.monitor.r)
 # axs[0].set_title('1e5 steps - per')
 # axs[0].plot(np.cumsum(r.monitor.l), running_mean(r.monitor.r, 100))
 
@@ -29,6 +28,6 @@ plt.plot(r.monitor.r[:1000])
 # axs[2].plot(np.cumsum(r.monitor.l), r.monitor.r)
 # axs[2].set_title('1e6 steps - noper')
 # axs[2].plot(running_mean(r.monitor.r.tolist(), 100))
-# plt.savefig('plain-MountainCar-modified-reward.jpg')
+plt.savefig('plain-MountainCar-modified-reward.jpg')
 
-plt.show()
+# plt.show()

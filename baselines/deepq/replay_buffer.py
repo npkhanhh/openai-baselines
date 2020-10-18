@@ -1,6 +1,9 @@
+import time
+
 import numpy as np
 import random
-import csv
+import bisect
+from matplotlib import pyplot as plt
 
 from baselines.common.segment_tree import SumSegmentTree, MinSegmentTree
 
@@ -18,55 +21,97 @@ class ReplayBuffer(object):
         self._storage = []
         self._maxsize = size
         self._next_idx = 0
-        self.memory_count = 0
         self._td_errors = []
         self._replace_td_errors = []
         self._env_name = env_name
         self._dueling = dueling
         self._per = per
+        self._new_td = []
+        self._expected_total = 0
+        self._current_total = 0
+        self.t = 0
+        self._buffer_file = 'td_error_{}_uniform2_{}.txt'.format(env_name, time.time())
+
+    def _update_min_max(self, td_error):
+        if self._min_td_error <= td_error <= self._max_td_error:
+            return
+        if td_error < self._min_td_error:
+            self._min_td_error = td_error
+        if td_error > self._max_td_error:
+            self._max_td_error = td_error
+        self._expected_total = (self._min_td_error + self._max_td_error)
+
+    def _calculate_expected_total(self):
+        self._expected_total = (self._td_errors[0] + self._td_errors[-1]) * (self._maxsize / 2)
+
+    def _get_insert_pos(self, td_error):
+        pos = bisect.bisect_left(self._td_errors, td_error)
+        return pos
+
+    def _get_delete_pos(self, td_error):
+        del_value = td_error - (self._expected_total - self._current_total)
+        pos = bisect.bisect_left(self._td_errors, del_value)
+        if pos == 0:
+            return 1
+        if pos == len(self._td_errors):
+            return -2
+        before = self._td_errors[pos - 1]
+        after = self._td_errors[pos]
+        if after - td_error < td_error - before:
+            return pos
+        else:
+            return pos - 1
+
+    def swap(self, insert_pos, delete_pos, content, td_error):
+        data = [td_error, content]
+        self._current_total += td_error - self._td_errors[delete_pos]
+        if delete_pos < insert_pos:
+            insert_pos -= 1
+        del self._td_errors[delete_pos]
+        del self._storage[delete_pos]
+        self._td_errors.insert(insert_pos, td_error)
+        self._storage.insert(insert_pos, data)
 
     def __len__(self):
         return len(self._storage)
 
     def add(self, obs_t, action, reward, obs_tp1, done, td_error):
-        data = (obs_t, action, reward, obs_tp1, done)
-
-        if self._next_idx >= len(self._storage):
-            self._storage.append(data)
-            self._td_errors.append(np.abs(td_error))
+        data = [td_error, (obs_t, action, reward, obs_tp1, done)]
+        idx = self._get_insert_pos(td_error)
+        if len(self._storage) < self._maxsize:
+            bisect.insort(self._td_errors, td_error)
+            self._storage.insert(idx, data)
+            self._current_total += td_error
         else:
-            self._storage[self._next_idx] = data
-            self._td_errors[self._next_idx] = np.abs(td_error)
+            self.swap(self._get_insert_pos(td_error), self._get_delete_pos(td_error), data[1], td_error)
+        self._calculate_expected_total()
         self._next_idx = (self._next_idx + 1) % self._maxsize
         if self._next_idx == 0:
-            s = self._env_name
-            if self._dueling:
-                s += '_pddper'
-            if self._per:
-                s += '_per'
-            else:
-                s += '_noper'
-            with open('td_error_{}.txt'.format(s), 'a') as file:
+            with open(self._buffer_file, 'a') as file:
                 file.write(' '.join(map(str, self._td_errors)) + '\n')
 
-    def update(self, td_errors, idxes):
-        for (td_error, idx) in zip(td_errors, idxes):
-            self._td_errors[idx] = np.abs(td_error)
+    def update(self, batch_idxs, td_error):
+        for idx, error in zip(batch_idxs, td_error):
+            old_error, data = self._storage[idx]
+            self.swap(self._get_insert_pos(error), idx, data, error)
+        self._calculate_expected_total()
 
     def _encode_sample(self, idxes):
         obses_t, actions, rewards, obses_tp1, dones = [], [], [], [], []
-        data = self._storage[0]
+        data = self._storage[0][1]
         ob_dtype = data[0].dtype
         ac_dtype = data[1].dtype
         for i in idxes:
-            data = self._storage[i]
+            data = self._storage[i][1]
             obs_t, action, reward, obs_tp1, done = data
             obses_t.append(np.array(obs_t, copy=False))
             actions.append(np.array(action, copy=False))
             rewards.append(reward)
             obses_tp1.append(np.array(obs_tp1, copy=False))
             dones.append(done)
-        return np.array(obses_t, dtype=ob_dtype), np.array(actions, dtype=ac_dtype), np.array(rewards, dtype=np.float32), np.array(obses_tp1, dtype=ob_dtype), np.array(dones, dtype=np.float32)
+        return np.array(obses_t, dtype=ob_dtype), np.array(actions, dtype=ac_dtype), \
+               np.array(rewards, dtype=np.float32), np.array(obses_tp1, dtype=ob_dtype), np.array(dones,
+                                                                                                  dtype=np.float32)
 
     def sample(self, batch_size):
         """Sample a batch of experiences.
