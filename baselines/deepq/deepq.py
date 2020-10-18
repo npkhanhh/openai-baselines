@@ -186,7 +186,6 @@ def learn(env,
         new_obs, rew, done, _ = env.step(action)
         rew[0] = new_obs[0][0] + 1
         if new_obs[0][0] > max_pos:
-            print(new_obs[0][0])
             max_pos = new_obs[0][0]
         if new_obs[0][0] >= 0.5:
             rew[0] += 5
