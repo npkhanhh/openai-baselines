@@ -16,7 +16,7 @@ def running_mean(x, N):
     return (cumsum[N:] - cumsum[:-N]) / float(N)
 
 
-results = pu.load_results('logs/BreakoutNoFrameskip-v0-25e6-gamma99')
+results = pu.load_results('/Users/khanh/logs/mountaincar-v0-20200826-no-per-modified-reward-buffer-size-20000')
 
 # fig, axs = plt.subplots(1, 3, figsize=(25, 12), dpi=100, constrained_layout=True)
 

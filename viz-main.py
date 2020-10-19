@@ -36,13 +36,14 @@ def get_avgs(env):
         results.append(avgs)
     return results
 
-
-per, dqn, uniform = get_avgs('acrobot')
+env='acrobot'
+per, dqn, uniform = get_avgs(env.lower())
 plt.xlabel('episodes')
 plt.ylabel('rewards')
 plt.plot(running_mean(dqn, 100), label='dqn')
 plt.plot(running_mean(per, 100), label='per')
 plt.plot(running_mean(uniform, 100), label='uniform')
+plt.title('100-episode moving average over 3 trials')
 plt.legend()
-plt.show()
-# plt.savefig('cartpole-result-new.png', bbox_inches='tight')
+# plt.show()
+plt.savefig('acrobot-result.png', bbox_inches='tight')
