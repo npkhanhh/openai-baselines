@@ -150,6 +150,9 @@ def learn(env,
     exploration = LinearSchedule(schedule_timesteps=int(exploration_fraction * total_timesteps),
                                  initial_p=1.0,
                                  final_p=exploration_final_eps)
+    epsilon = 1.0
+    epsilon_decay = 0.05
+    epsilon_min = 0.01
 
     model.update_target()
 
@@ -167,7 +170,8 @@ def learn(env,
                 break
         kwargs = {}
         if not param_noise:
-            update_eps = tf.constant(exploration.value(t))
+            update_eps = tf.constant(max(epsilon_min, epsilon))
+            # update_eps = tf.constant(exploration.value(t))
             update_param_noise_threshold = 0.
         else:
             update_eps = tf.constant(0.)
@@ -183,11 +187,11 @@ def learn(env,
         action = action[0].numpy()
         reset = False
         new_obs, rew, done, _ = env.step(action)
-        rew[0] = new_obs[0][0] + 1
+        rew[0] = new_obs[0][0]
         if new_obs[0][0] > max_pos:
             max_pos = new_obs[0][0]
         if new_obs[0][0] >= 0.5:
-            rew[0] += 5
+            rew[0] += 100
         # Store transition in the replay buffer.
         if not isinstance(env, VecEnv):
             new_obs = np.expand_dims(np.array(new_obs), axis=0)
@@ -200,12 +204,13 @@ def learn(env,
         # replay_buffer.add(obs, action, rew, new_obs, float(done))
         obs = new_obs
 
-        episode_rewards[-1] -= 1
+        episode_rewards[-1] += rew[0]
         if done:
             obs = env.reset()
             if not isinstance(env, VecEnv):
                 obs = np.expand_dims(np.array(obs), axis=0)
             episode_rewards.append(0.0)
+            epsilon = max(epsilon - epsilon_decay, epsilon_min)
             reset = True
 
         if t > learning_starts and t % train_freq == 0:
